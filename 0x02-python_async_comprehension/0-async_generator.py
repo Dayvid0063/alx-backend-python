@@ -4,9 +4,10 @@
 
 import asyncio
 import random
+from typing import AsyncGenerator
 
 
-async def async_generator():
+async def async_generator() -> AsyncGenerator[float, None]:
     """yield a random number every second"""
     for u in range(10):
         await asyncio.sleep(1)
