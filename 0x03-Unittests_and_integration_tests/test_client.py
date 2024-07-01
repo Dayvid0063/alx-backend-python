@@ -93,21 +93,21 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
 
     def test_public_repos(self):
         """GithubOrgClient.public_repos method with integration setup"""
-        client = GithubOrgClient("test_org")
-        self.assertEqual(client.org, self.org_payload)
-        self.assertEqual(client.public_repos(), self.expected_repos)
-        self.assertEqual(client.public_repos("NONEXISTENT"), [])
-        self.get.assert_has_calls([call
-                                   ("https://api.github.com/orgs/test_org"),
+        cl = GithubOrgClient("x")
+        self.assertEqual(cl.org, self.org_payload)
+        self.assertEqual(cl.repos_payload, self.repos_payload)
+        self.assertEqual(cl.public_repos(), self.expected_repos)
+        self.assertEqual(cl.public_repos("NONEXISTENT"), [])
+        self.get.assert_has_calls([call("https://api.github.com/orgs/x"),
                                    call(self.org_payload["repos_url"])])
 
     def test_public_repos_with_license(self):
         """GithubOrgClient.public_repos method with license filtering"""
-        client = GithubOrgClient("test_org")
-        self.assertEqual(client.org, self.org_payload)
-        self.assertEqual(client.public_repos(), self.expected_repos)
-        self.assertEqual(client.public_repos("NONEXISTENT"), [])
-        self.assertEqual(client.public_repos("apache-2.0"), self.apache2_repos)
-        self.get.assert_has_calls([call
-                                   ("https://api.github.com/orgs/test_org"),
+        cl = GithubOrgClient("x")
+        self.assertEqual(cl.org, self.org_payload)
+        self.assertEqual(cl.repos_payload, self.repos_payload)
+        self.assertEqual(cl.public_repos(), self.expected_repos)
+        self.assertEqual(cl.public_repos("NONEXISTENT"), [])
+        self.assertEqual(cl.public_repos("apache-2.0"), self.apache2_repos)
+        self.get.assert_has_calls([call("https://api.github.com/orgs/x"),
                                    call(self.org_payload["repos_url"])])
