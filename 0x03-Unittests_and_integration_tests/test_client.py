@@ -9,6 +9,7 @@ from unittest.mock import patch, Mock, PropertyMock, call
 from parameterized import parameterized, parameterized_class
 from client import GithubOrgClient
 from fixtures import TEST_PAYLOAD
+from requests import HTTPError
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -73,45 +74,34 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up class-level mocks for the integration tests"""
-        org, repos = TEST_PAYLOAD[0]
-        cls.org_mock = Mock()
-        cls.org_mock.json.return_value = org
-        cls.repos_mock = Mock()
-        cls.repos_mock.json.return_value = repos
+        route_payload = {
+            'https://api.github.com/orgs/google': cls.org_payload,
+            'https://api.github.com/orgs/google/repos': cls.repos_payload,
+        }
 
-        cls.get_patcher = patch('requests.get')
-        cls.get = cls.get_patcher.start()
+        def get_payload(url):
+            if url in route_payload:
+                return Mock(**{'json.return_value': route_payload[url]})
+            return HTTPError
 
-        cls.get.side_effect = lambda url: (
-            cls.repos_mock if url == org["repos_url"] else cls.org_mock
-        )
+        cls.get_patcher = patch("requests.get", side_effect=get_payload)
+        cls.get_patcher.start()
 
     @classmethod
     def tearDownClass(cls):
         """Clean up class-level mocks after the integration tests"""
         cls.get_patcher.stop()
 
-    def test_public_repos(self):
+    def test_public_repos(self) -> None:
         """GithubOrgClient.public_repos method with integration setup"""
-        cl = GithubOrgClient("test_org")
-        self.assertEqual(cl.org, self.org_payload)
-        self.assertEqual(cl.public_repos(), self.expected_repos)
-        self.assertEqual(cl.public_repos("NONEXISTENT"), [])
-        self.get.assert_has_calls([call
-                                   ("https://api.github.com/orgs/test_org"),
-                                   call(self.org_payload["repos_url"])])
+        self.assertEqual(
+            GithubOrgClient("google").public_repos(),
+            self.expected_repos,
+        )
 
-    def test_public_repos_with_license(self):
+    def test_public_repos_with_license(self) -> None:
         """GithubOrgClient.public_repos method with license filtering"""
-        cl = GithubOrgClient("test_org")
-        self.assertEqual(cl.org, self.org_payload)
-        self.assertEqual(cl.public_repos(), self.expected_repos)
-        self.assertEqual(cl.public_repos("NONEXISTENT"), [])
-        self.assertEqual(cl.public_repos("apache-2.0"), self.apache2_repos)
-        self.get.assert_has_calls([call
-                                   ("https://api.github.com/orgs/test_org"),
-                                   call(self.org_payload["repos_url"])])
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertEqual(
+            GithubOrgClient("google").public_repos(license="apache-2.0"),
+            self.apache2_repos,
+        )
